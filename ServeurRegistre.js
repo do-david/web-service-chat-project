@@ -5,6 +5,8 @@ const PORT_SERVER_REGISTER = 7000
 
 const users = []
 
+
+// vérifier si utilisateur existe dèja 
 const checkUsername = (username)=>{
 
     const user = users.find(element=>element.username == username)
@@ -12,6 +14,40 @@ const checkUsername = (username)=>{
     if(user) return true
     
     return false ; 
+}
+
+// checker les error pour un registre 
+
+
+const validateRegisterError = (user)=>{
+
+     
+    
+    
+    if(!user.username || !user.port ) {
+
+      if(!user.username) return "username missed";
+
+      if(!user.port)  return "port missed";
+
+  
+    
+
+    } else if (user.port) {
+      if (typeof user.port != "number") return "port is not a number";
+      else {
+        if (!Number.isInteger(user.port)) return "port is not an integer";
+        else {
+          const isUserExist = checkUsername(user.username);
+          if (isUserExist) return "username existe dèja";
+        }
+      
+    }
+    } 
+
+    return false
+
+
 }
 
 var RegisterServerRequestHandler = function (req, res) {
@@ -38,10 +74,10 @@ var RegisterServerRequestHandler = function (req, res) {
         
         const user = JSON.parse(body)
         if(user instanceof Object){
-            const isUsernameExist = checkUsername(user.username)
+            const validate = validateRegisterError(user)
             
-            if(isUsernameExist){
-                res.end(JSON.stringify({ message: "username existe dèja" }));
+            if(validate){
+                res.end(JSON.stringify({ message: validate }));
             }
             else {
                 user.isOnline = true
@@ -50,7 +86,7 @@ var RegisterServerRequestHandler = function (req, res) {
             }
         }
         else {
-            res.end(JSON.stringify({ message: "error data  type " }));
+            res.end(JSON.stringify({ message: "error data  type : il faut mettre un object avec username et son port" }));
         }
 
         

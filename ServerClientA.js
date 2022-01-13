@@ -39,6 +39,19 @@ const isUserNameExist =  (username)=>{
 
 }
 
+const validateRequestClient = (user)=>{
+
+   if (!user.username) return "username missed";
+   else if (!user.message) return "message missed";
+   else {
+     const user = checkUsername(user.username);
+     if (user) return user;
+   }
+
+   return false;
+
+}
+
 var clientRequestHandler = function(req, res){
     var path = req.url.split('?')[0];
     if(!path || path =='/'){
