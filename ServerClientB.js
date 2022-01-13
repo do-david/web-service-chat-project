@@ -29,7 +29,9 @@ var clientRequestHandler = function(req, res){
                 messages[path] = 0;
                 delete messages[path];
             }    
-        }else if(req.method == 'POST'){
+        }
+        //send to client A
+        else if(req.method == 'POST'){
             var options = {
                 port : portInterServer1,
                 hostname : host1,
@@ -48,7 +50,6 @@ var clientRequestHandler = function(req, res){
                     body += data.toString();
                 });
                 response.on('end', function(){
-                    console.log('Trying to send post : ',body);
                     res.writeHead(200, {'Content-type': 'application/json'});
                     res.end(body);
                 });
@@ -72,7 +73,6 @@ var interServerRequestHandler = function(req, res){
         res.end('{message : "page not found"}');
     }else{
         if(req.method == 'POST'){
-            console.log('Msg received from ',portClient1);
             var body = '';
             res.writeHead(200, {'Content-type': 'application/json'});
             req.on('data', function(data){

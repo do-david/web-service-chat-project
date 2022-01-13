@@ -29,7 +29,9 @@ var clientRequestHandler = function(req, res){
                 messages[path] = 0;
                 delete messages[path];
             }    
-        }else if(req.method == 'POST'){
+        }
+        //send to client B
+        else if(req.method == 'POST'){
             var options = {
                 port : portInterServer2,
                 hostname : host2,
