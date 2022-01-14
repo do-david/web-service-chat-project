@@ -22,13 +22,13 @@ var optionRegister = {
   method: "",
 };
 
-var username = "";
+var name = "";
 
 var messages = {};
 var users = [];
 
-const isUserNameExist = (username) => {
-  const user = users.find((element) => element.username == username);
+const isNameExist = (name) => {
+  const user = users.find((element) => element.name == name);
 
   return user;
 };
@@ -77,18 +77,18 @@ var clientRequestHandler = function (req, res) {
         req.pipe(request);
       } else {
 
-          const user = isUserNameExist(path.split("/")[1]);
+        const name = path.split("/")[1];
+        const isSended = messages[name];
 
-          if (!user) {
-            res.end(JSON.stringify([]));
-          } else {
-            const username = user.username;
-            const message = JSON.stringify(messages[username]);
-            console.log("message", message);
-            res.end(message);
-            messages[username] = 0;
-            delete messages[username];
-          }
+        if (!isSended) {
+          res.end(JSON.stringify([]));
+        } else {
+          const message = JSON.stringify(messages[name]);
+          res.end(message);
+          messages[name] = 0;
+          delete messages[name];
+        }
+        
       }
     } else if (req.method == "POST") {
       if (path == "/register") {
@@ -112,9 +112,12 @@ var clientRequestHandler = function (req, res) {
               "Content-type": "application/json",
             });
 
-            if (JSON.parse(body).username) {
-              username = JSON.parse(body).username;
-            }
+                 const result = JSON.parse(body);
+
+                 if (result.name) {
+                   name = JSON.parse(body).name;
+                 }
+                 users = result.users;
 
             res.end(body);
           });
@@ -127,14 +130,15 @@ var clientRequestHandler = function (req, res) {
         });
         req.pipe(request);
       } else {
-        const user = isUserNameExist(path.split("/")[1]);
+        const user = isNameExist(path.split("/")[1]);
         if (!user) {
-          res.end("{message : username pas en ligne ou n'existe pas}");
+          res.end("{message : name pas en ligne ou n'existe pas}");
         } else {
           const PORT = user.port;
+          const HOST = user.host;
           var options = {
             port: PORT,
-            hostname: host2,
+            hostname: HOST,
             host: host2 + ":" + PORT,
             path: path,
             method: req.method,
@@ -191,14 +195,13 @@ var interServerRequestHandler = function(req, res){
             });
             req.on('end', function(){
                 const object = JSON.parse(body)
-                const username = object.username;
+                const name = object.name;
                 const message = object.message;
-                console.log(username);
-                console.log(message);
-                if(!messages[username]){
-                    messages[username] = [];
+                
+                if(!messages[name]){
+                    messages[name] = [];
                 }
-                messages[username].push(message);
+                messages[name].push(message);
                 res.end('{status : "ok"}');
             });  
         }else{

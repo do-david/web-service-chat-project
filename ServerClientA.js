@@ -22,29 +22,29 @@ var optionRegister = {
   method: "",
 };
 
-var username = ""
+var name = ""
 
 var messages = {};
 var users = []
 
 
 
-const isUserNameExist =  (username)=>{
+const isNameExist =  (name)=>{
 
-  console.log(username);
-    
-     const user = users.find((element) => element.username == username);
+  
+     const user = users.find((element) => element.name == name);
 
      return user
 
 }
 
+//validation envoie un message 
 const validateRequestClient = (user)=>{
 
-   if (!user.username) return "username missed";
+   if (!user.name) return "name missed";
    else if (!user.message) return "message missed";
    else {
-     const user = checkUsername(user.username);
+     const user = checkname(user.name);
      if (user) return user;
    }
 
@@ -101,17 +101,16 @@ var clientRequestHandler = function(req, res){
 
             }else {
 
-              const user = isUserNameExist(path.split("/")[1])
+              const name = path.split("/")[1];
+              const isSended = messages[name];
               
-                      if (!user) {
+                      if (!isSended) {
                         res.end(JSON.stringify([]));
                       } else {
-                        const username = user.username
-                        const message = JSON.stringify(messages[username]);
-                        console.log("message", message);
+                        const message = JSON.stringify(messages[name]);
                         res.end(message);
-                        messages[username] = 0;
-                        delete messages[username];
+                        messages[name] = 0;
+                        delete messages[name];
                       }
             }
 
@@ -138,11 +137,15 @@ var clientRequestHandler = function(req, res){
                    res.writeHead(200, {
                      "Content-type": "application/json",
                    });
+
+                   const result = JSON.parse(body);
                    
-                   if(JSON.parse(body).username){
-                     username = JSON.parse(body).username
+                   if(result.name){
+                     name = JSON.parse(body).name
                    }
-                  
+                  users = result.users
+                  console.log(result);
+                  console.log(users);
                   res.end(body);
                  });
                });
@@ -157,16 +160,17 @@ var clientRequestHandler = function(req, res){
 
             else  {
 
-              const user = isUserNameExist(path.split("/")[1]);
+              const user = isNameExist(path.split("/")[1]);
               if(!user){
-                  res.end("{message : username pas en ligne ou n'existe pas}")
+                  res.end("{message : name pas en ligne ou n'existe pas}")
               }
 
               else {
                 const PORT  = user.port
+                const HOST  = user.host
                   var options = {
                     port: PORT,
-                    hostname: host2,
+                    hostname: HOST,
                     host: host2 + ":" + PORT,
                     path: path,
                     method: req.method,
@@ -217,7 +221,7 @@ var interServerRequestHandler = function (req, res) {
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "POST") {
-      //console.log('Msg received from ',portClient1);
+      
       var body = "";
       res.writeHead(200, { "Content-type": "application/json" });
       req.on("data", function (data) {
@@ -225,14 +229,12 @@ var interServerRequestHandler = function (req, res) {
       });
       req.on("end", function () {
         const object = JSON.parse(body);
-        const username = object.username;
+        const name = object.name;
         const message = object.message;
-        console.log(username);
-        console.log(message);
-        if (!messages[username]) {
-          messages[username] = [];
+        if (!messages[name]) {
+          messages[name] = [];
         }
-        messages[username].push(message);
+        messages[name].push(message);
         res.end('{status : "ok"}');
       });
     } else {
