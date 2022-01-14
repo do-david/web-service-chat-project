@@ -7,9 +7,9 @@ const users = []
 
 
 // vérifier si utilisateur existe dèja 
-const checkUsername = (username)=>{
+const checkName = (name)=>{
 
-    const user = users.find(element=>element.username == username)
+    const user = users.find(element=>element.name == name)
 
     if(user) return true
     
@@ -24,9 +24,9 @@ const validateRegisterError = (user)=>{
      
     
     
-    if(!user.username || !user.port ) {
+    if(!user.name || !user.port ) {
 
-      if(!user.username) return "username missed";
+      if(!user.name) return "name missed";
 
       if(!user.port)  return "port missed";
 
@@ -38,8 +38,8 @@ const validateRegisterError = (user)=>{
       else {
         if (!Number.isInteger(user.port)) return "port is not an integer";
         else {
-          const isUserExist = checkUsername(user.username);
-          if (isUserExist) return "username existe dèja";
+          const isUserExist = checkName(user.name);
+          if (isUserExist) return "name existe dèja";
         }
       
     }
@@ -80,13 +80,13 @@ var RegisterServerRequestHandler = function (req, res) {
                 res.end(JSON.stringify({ message: validate }));
             }
             else {
-                user.isOnline = true
+                
                 users.push(user)
-                res.end(JSON.stringify(user));
+                res.end(JSON.stringify({message :"OK" , users : users}));
             }
         }
         else {
-            res.end(JSON.stringify({ message: "error data  type : il faut mettre un object avec username et son port" }));
+            res.end(JSON.stringify({ message: "error data  type : il faut mettre un object avec name et son port" }));
         }
 
         
