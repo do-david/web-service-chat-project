@@ -52,9 +52,7 @@ var clientRequestHandler = function (req, res) {
   } else {
     if (req.method == "GET") {
       res.writeHead(200, { "Content-type": "application/json" });
-      if (path == "/ping") {
-        res.end(JSON.stringify({ message: "Je suis encore en vie!" }));
-      } else if (path == "/users") {
+        if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
 
@@ -100,7 +98,21 @@ var clientRequestHandler = function (req, res) {
         }
       }
     } else if (req.method == "POST") {
-      if (path == "/register") {
+      if (path == "/ping") {
+        let body = [];
+        req.on("data",(chunk)=> {
+          body.push(chunk);
+        })
+        req.on("end", () => {
+          const parsedBody = Buffer.concat(body).toString();
+          const message = parsedBody.split('=')[1];
+          console.log(parsedBody);
+          console.log(message);
+      });
+      console.log(body);
+      res.end(JSON.stringify({ message: "Je suis encore en vie!" }));
+      }
+      else if (path == "/register") {
         optionRegister.path = path;
         optionRegister.method = req.method;
 
