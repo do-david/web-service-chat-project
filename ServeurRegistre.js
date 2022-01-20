@@ -42,16 +42,24 @@ const validateRegisterError = (user) => {
 };
 
 // Heartbeat des clients
-const postData = {
-  message: "liste des utilisateurs connectés",
-  users: users,
-};
 
 const HeartBeatRequest = function () {
-  const filteredUsers = postData.users.filter(function (user) {
+  const filteredUsers = users.filter(function (user) {
     return user.isOnline;
   });
-  postData.users = filteredUsers;
+  const postData = {
+    message: "liste des utilisateurs connectés",
+    users: [],
+  };
+  for (let i = 0; i < filteredUsers.length; i++) {
+    const normedUser = {
+      name: filteredUsers[i].username,
+      port: filteredUsers[i].port,
+      host: filteredUsers[i].host,
+    };
+    postData.users.push(normedUser);
+  }
+
   console.log("filtered data :", postData);
   if (users.length > 0) {
     //Need to update users

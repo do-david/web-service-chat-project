@@ -52,7 +52,7 @@ var clientRequestHandler = function (req, res) {
   } else {
     if (req.method == "GET") {
       res.writeHead(200, { "Content-type": "application/json" });
-        if (path == "/users") {
+      if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
 
@@ -98,21 +98,7 @@ var clientRequestHandler = function (req, res) {
         }
       }
     } else if (req.method == "POST") {
-      if (path == "/ping") {
-        let body = [];
-        req.on("data",(chunk)=> {
-          body.push(chunk);
-        })
-        req.on("end", () => {
-          const parsedBody = Buffer.concat(body).toString();
-          const message = parsedBody.split('=')[1];
-          console.log(parsedBody);
-          console.log(message);
-      });
-      console.log(body);
-      res.end(JSON.stringify({ message: "Je suis encore en vie!" }));
-      }
-      else if (path == "/register") {
+      if (path == "/register") {
         optionRegister.path = path;
         optionRegister.method = req.method;
 
@@ -203,24 +189,40 @@ var interServerRequestHandler = function (req, res) {
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "POST") {
-      //console.log('Msg received from ',portClient1);
-      var body = "";
-      res.writeHead(200, { "Content-type": "application/json" });
-      req.on("data", function (data) {
-        body += data.toString();
-      });
-      req.on("end", function () {
-        const object = JSON.parse(body);
-        const username = object.username;
-        const message = object.message;
-        console.log(username);
-        console.log(message);
-        if (!messages[username]) {
-          messages[username] = [];
-        }
-        messages[username].push(message);
-        res.end('{status : "ok"}');
-      });
+      if (path == "/ping") {
+        let body = [];
+        req.on("data", (chunk) => {
+          body.push(chunk);
+        });
+        req.on("end", () => {
+          const parsedBody = Buffer.concat(body).toString();
+          const message = parsedBody.split("=")[1];
+          console.log(parsedBody);
+          console.log(message);
+        });
+        console.log(body);
+        res.end(JSON.stringify({ message: "Je suis encore en vie!" }));
+      }
+      else {
+        //console.log('Msg received from ',portClient1);
+        var body = "";
+        res.writeHead(200, { "Content-type": "application/json" });
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const object = JSON.parse(body);
+          const username = object.username;
+          const message = object.message;
+          console.log(username);
+          console.log(message);
+          if (!messages[username]) {
+            messages[username] = [];
+          }
+          messages[username].push(message);
+          res.end('{status : "ok"}');
+        });
+      }
     } else {
       res.writeHead(404, { "Content-type": "application/json" });
       res.end('{message : "page not found"}');
