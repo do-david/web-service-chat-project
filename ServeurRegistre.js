@@ -14,9 +14,7 @@ const users = [];
 // vérifier si utilisateur existe dèja
 const checkUsername = (username) => {
   const user = users.find((element) => element.username == username);
-
   if (user) return true;
-
   return false;
 };
 

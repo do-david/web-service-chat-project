@@ -27,8 +27,8 @@ var username = "";
 var messages = {};
 var users = [];
 
-const isUserNameExist = (username) => {
-  const user = users.find((element) => element.username == username);
+const isNameExist = (name) => {
+  const user = users.find((element) => element.username == name);
 
   return user;
 };
@@ -108,9 +108,12 @@ var clientRequestHandler = function (req, res) {
               "Content-type": "application/json",
             });
 
-            if (JSON.parse(body).username) {
-              username = JSON.parse(body).username;
-            }
+                 const result = JSON.parse(body);
+
+                 if (result.name) {
+                   name = JSON.parse(body).name;
+                 }
+                 users = result.users;
 
             res.end(body);
           });
@@ -123,14 +126,15 @@ var clientRequestHandler = function (req, res) {
         });
         req.pipe(request);
       } else {
-        const user = isUserNameExist(path.split("/")[1]);
+        const user = isNameExist(path.split("/")[1]);
         if (!user) {
-          res.end("{message : username pas en ligne ou n'existe pas}");
+          res.end("{message : name pas en ligne ou n'existe pas}");
         } else {
           const PORT = user.port;
+          const HOST = user.host;
           var options = {
             port: PORT,
-            hostname: host2,
+            hostname: HOST,
             host: host2 + ":" + PORT,
             path: path,
             method: req.method,
