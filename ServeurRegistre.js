@@ -43,55 +43,44 @@ const validateRegisterError = (user) => {
 
 // Heartbeat des clients
 const postData = {
-  msg: "pending",
-  users: undefined,
+  message: "liste des utilisateurs connectés",
+  users: users,
 };
 
 const HeartBeatRequest = function () {
+  const filteredUsers = postData.users.filter(function (user) {
+    return user.isOnline;
+  });
+  postData.users = filteredUsers;
+  console.log("filtered data :", postData);
   if (users.length > 0) {
     //Need to update users
-    postData.users = [];
     for (let i = 0; i < users.length; i++) {
       //spécificité de chaque utilisateur
       const hostnameClient = users[i].host;
       const portClient = users[i].port;
       const hostClient = `${hostnameClient}:${portClient}`;
-      console.log("host of the client is :", { hostClient });
       optionPing.hostname = hostnameClient;
       optionPing.port = portClient;
       optionPing.host = hostClient;
       //prépare la requête
       var req = http.request(optionPing, function (res) {
         res.setEncoding("utf8");
-        console.log("add user connected", users[i]);
         res.on("data", (chunk) => {
           console.log(`BODY: ${chunk}`);
         });
         res.on("end", function () {
-          postData.users.push(users[i]);
+          users[i].isOnline = true;
         });
         res.on("error", function (e) {
-          //CRASH quand le client est mort
-          console.error(`problem with request: ${e.message}`);
+          console.error(`problem with response: ${e.message}`);
         });
       });
-      req.write(JSON.stringify(postData));
-      req.end();
+      req.on("error", function (e) {
+        users[i].isOnline = false;
+        console.error(`problem with request: ${e.message}`);
+      });
       //envoyer le résultat de la list en post
-    }
-    postData.msg = "updated";
-    console.log('updated list',postData);
-    for(let j = 0; j < postData.users.length; j++){
-      optionPing.hostname = postData.users[j].host;
-      optionPing.port = postData.users[j].port;
-      const host = `${postData.users[j].host}:${postData.users[j].port}`;
-      console.log('host user =',host);
-      optionPing.host = host;
-      var req = http.request(optionPing, function(res){
-        res.on("error",function (e) {
-          console.error(`problem with request: ${e.message}`);
-        });
-      });
       req.write(JSON.stringify(postData));
       req.end();
     }
