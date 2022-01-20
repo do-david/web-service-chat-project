@@ -1,5 +1,5 @@
-var http = require('http');
-var url = require('url');
+var http = require("http");
+var url = require("url");
 
 var portInterServer1 = 8090;
 var portInterServer2 = 8081;
@@ -10,7 +10,7 @@ var PORT_SERVER_REGISTER = 7000;
 
 var host1 = "localhost";
 var host2 = "localhost";
-var HOST_SERVER_REGISTER = "localhost"; 
+var HOST_SERVER_REGISTER = "localhost";
 
 var messages = {};
 
@@ -22,18 +22,16 @@ var optionRegister = {
   method: "",
 };
 
-var name = "";
+var username = "";
 
 var messages = {};
 var users = [];
 
 const isNameExist = (name) => {
-  const user = users.find((element) => element.name == name);
+  const user = users.find((element) => element.username == name);
 
   return user;
 };
-
-
 
 var clientRequestHandler = function (req, res) {
   var path = req.url.split("?")[0];
@@ -43,7 +41,6 @@ var clientRequestHandler = function (req, res) {
   } else {
     if (req.method == "GET") {
       res.writeHead(200, { "Content-type": "application/json" });
-
       if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
@@ -76,19 +73,18 @@ var clientRequestHandler = function (req, res) {
         });
         req.pipe(request);
       } else {
+        const user = isUserNameExist(path.split("/")[1]);
 
-        const name = path.split("/")[1];
-        const isSended = messages[name];
-
-        if (!isSended) {
+        if (!user) {
           res.end(JSON.stringify([]));
         } else {
-          const message = JSON.stringify(messages[name]);
+          const username = user.username;
+          const message = JSON.stringify(messages[username]);
+          console.log("message", message);
           res.end(message);
-          messages[name] = 0;
-          delete messages[name];
+          messages[username] = 0;
+          delete messages[username];
         }
-        
       }
     } else if (req.method == "POST") {
       if (path == "/register") {
@@ -180,36 +176,53 @@ var clientRequestHandler = function (req, res) {
   }
 };
 
-var interServerRequestHandler = function(req, res){
-    var path = req.url.split('?')[0];
-    if(!path || path =='/'){
-        res.writeHead(404, {'Content-type': 'application/json'});
-        res.end('{message : "page not found"}');
-    }else{
-        if(req.method == 'POST'){
-            //console.log('Msg received from ',portClient1);
-            var body = '';
-            res.writeHead(200, {'Content-type': 'application/json'});
-            req.on('data', function(data){
-                body += data.toString();
-            });
-            req.on('end', function(){
-                const object = JSON.parse(body)
-                const name = object.name;
-                const message = object.message;
-                
-                if(!messages[name]){
-                    messages[name] = [];
-                }
-                messages[name].push(message);
-                res.end('{status : "ok"}');
-            });  
-        }else{
-            res.writeHead(404, {'Content-type': 'application/json'});
-            res.end('{message : "page not found"}');
-        }
+var interServerRequestHandler = function (req, res) {
+  var path = req.url.split("?")[0];
+  if (!path || path == "/") {
+    res.writeHead(404, { "Content-type": "application/json" });
+    res.end('{message : "page not found"}');
+  } else {
+    if (req.method == "POST") {
+      if (path == "/ping") {
+        let body = [];
+        req.on("data", (chunk) => {
+          body.push(chunk);
+        });
+        req.on("end", () => {
+          const parsedBody = Buffer.concat(body).toString();
+          const message = parsedBody.split("=")[1];
+          console.log(parsedBody);
+          console.log(message);
+        });
+        console.log(body);
+        res.end(JSON.stringify({ message: "I'm alive!" }));
+      }
+      else {
+        //console.log('Msg received from ',portClient1);
+        var body = "";
+        res.writeHead(200, { "Content-type": "application/json" });
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const object = JSON.parse(body);
+          const username = object.username;
+          const message = object.message;
+          console.log(username);
+          console.log(message);
+          if (!messages[username]) {
+            messages[username] = [];
+          }
+          messages[username].push(message);
+          res.end('{status : "ok"}');
+        });
+      }
+    } else {
+      res.writeHead(404, { "Content-type": "application/json" });
+      res.end('{message : "page not found"}');
     }
-}
+  }
+};
 var clientServer = http.createServer(clientRequestHandler);
 var interServer = http.createServer(interServerRequestHandler);
 clientServer.listen(portClient2);
