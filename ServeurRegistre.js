@@ -96,42 +96,43 @@ const HeartBeatRequest = function () {
 setInterval(HeartBeatRequest, 30000);
 
 var RegisterServerRequestHandler = function (req, res) {
+
+   const headers = {
+     "Access-Control-Allow-Origin": "*",
+     "Content-type": "application/json",
+   };
   var path = req.url.split("?")[0];
   if (!path || path == "/") {
-    res.writeHead(404, { "Content-type": "application/json" });
+    res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "GET") {
       res.end(JSON.stringify(users));
     } else if (req.method == "POST") {
       var body = "";
-      res.writeHead(200, { "Content-type": "application/json" });
+      
       req.on("data", function (data) {
         body += data.toString();
       });
-      req.on("end", function () {
-        const user = JSON.parse(body);
-        if (user instanceof Object) {
-          const validate = validateRegisterError(user);
-
-          if (validate) {
-            res.end(JSON.stringify({ message: validate }));
-          } else {
-            user.isOnline = true;
-            users.push(user);
-            res.end(JSON.stringify(user));
-          }
-        } else {
-          res.end(
-            JSON.stringify({
-              message:
-                "error data  type : il faut mettre un object avec username et son port",
-            })
-          );
+      req.on("end", function () {        
+        const user = JSON.parse(body)
+        if(user instanceof Object){
+            const validate = validateRegisterError(user)
+            
+            if(validate){
+              res.writeHead(200, headers);
+                res.end(JSON.stringify({ message: validate }));
+            }
+            else {
+                user["isOnline"] = true;
+                users.push(user)
+                res.writeHead(200, headers);
+                res.end(JSON.stringify({message :"OK" , users : users}));
+            }
         }
       });
     } else {
-      res.writeHead(404, { "Content-type": "application/json" });
+      res.writeHead(404, headers);
       res.end('{message : "page not found"}');
     }
   }

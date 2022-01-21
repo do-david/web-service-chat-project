@@ -34,13 +34,29 @@ const isNameExist = (name) => {
 };
 
 var clientRequestHandler = function (req, res) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers":
+      "Access-Control-Allow-Origin, Content-Type, Accept, Accept-Language, Origin, User-Agent",
+    "Access-Control-Allow-Methods": "GET, POST",
+    "Content-type": "application/json",
+  };
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, headers);
+    res.end();
+    return;
+  }
+
+  console.log(req.method);
   var path = req.url.split("?")[0];
+  const chatPath = path.split("/chat/");
   if (!path || path == "/") {
-    res.writeHead(404, { "Content-type": "application/json" });
+    res.writeHead(200, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "GET") {
-      res.writeHead(200, { "Content-type": "application/json" });
+      res.writeHead(200, headers);
       if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
@@ -49,18 +65,17 @@ var clientRequestHandler = function (req, res) {
           var body = "";
           response.on("error", function (e) {
             console.log(e);
-            res.writeHead(500, {
-              "Content-type": "application/json",
-            });
+
+            res.writeHead(500, headers);
+
             res.end(e);
           });
           response.on("data", function (data) {
             body += data.toString();
           });
           response.on("end", function () {
-            res.writeHead(200, {
-              "Content-type": "application/json",
-            });
+            res.writeHead(200, headers);
+
             users = JSON.parse(body);
             res.end(body);
           });
@@ -68,14 +83,15 @@ var clientRequestHandler = function (req, res) {
 
         request.on("error", function (e) {
           console.log(e);
-          res.writeHead(500, { "Content-type": "application/json" });
+          res.writeHead(500, headers);
           res.end(e);
         });
         req.pipe(request);
       } else {
-        const user = isUserNameExist(path.split("/")[1]);
+        const name = path.split("/")[1];
+        const isSended = messages[name];
 
-        if (!user) {
+        if (!isSended) {
           res.end(JSON.stringify([]));
         } else {
           const username = user.username;
@@ -95,38 +111,39 @@ var clientRequestHandler = function (req, res) {
           var body = "";
           response.on("error", function (e) {
             console.log(e);
-            res.writeHead(500, {
-              "Content-type": "application/json",
-            });
+            res.writeHead(500, headers);
             res.end(e);
           });
           response.on("data", function (data) {
             body += data.toString();
           });
           response.on("end", function () {
-            res.writeHead(200, {
-              "Content-type": "application/json",
-            });
+            res.writeHead(200, headers);
 
-                 const result = JSON.parse(body);
+            const result = JSON.parse(body);
 
-                 if (result.name) {
-                   name = JSON.parse(body).name;
-                 }
-                 users = result.users;
-
+            if (result.name) {
+              name = JSON.parse(body).name;
+            }
+            users = result.users;
+            console.log(result);
+            console.log(users);
             res.end(body);
           });
         });
 
         request.on("error", function (e) {
           console.log(e);
-          res.writeHead(500, { "Content-type": "application/json" });
+          res.writeHead(500, headers);
           res.end(e);
         });
         req.pipe(request);
-      } else {
-        const user = isNameExist(path.split("/")[1]);
+        req;
+      } else if (path == "/chat") {
+        res.writeHead(400, headers);
+        res.end('{message : "bad request"}');
+      } else if (chatPath && chatPath[1]) {
+        const user = isNameExist(chatPath[1]);
         if (!user) {
           res.end("{message : name pas en ligne ou n'existe pas}");
         } else {
@@ -135,7 +152,7 @@ var clientRequestHandler = function (req, res) {
           var options = {
             port: PORT,
             hostname: HOST,
-            host: host2 + ":" + PORT,
+            host: HOST + ":" + PORT,
             path: path,
             method: req.method,
           };
@@ -143,47 +160,47 @@ var clientRequestHandler = function (req, res) {
             var body = "";
             response.on("error", function (e) {
               console.log(e);
-              res.writeHead(500, {
-                "Content-type": "application/json",
-              });
+              res.writeHead(500, headers);
               res.end(e);
             });
             response.on("data", function (data) {
               body += data.toString();
             });
             response.on("end", function () {
-              res.writeHead(200, {
-                "Content-type": "application/json",
-              });
+              res.writeHead(200, headers);
 
               res.end(body);
             });
           });
           request.on("error", function (e) {
             console.log(e);
-            res.writeHead(500, {
-              "Content-type": "application/json",
-            });
+            res.writeHead(500, headers);
             res.end(e);
           });
           req.pipe(request);
         }
+      } else {
+        res.writeHead(404, headers);
+        res.end('{message : "page not found"}');
       }
     } else {
-      res.writeHead(404, { "Content-type": "application/json" });
+      res.writeHead(404, headers);
       res.end('{message : "page not found"}');
     }
   }
 };
-
 var interServerRequestHandler = function (req, res) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-type": "application/json",
+  };
   var path = req.url.split("?")[0];
   if (!path || path == "/") {
-    res.writeHead(404, { "Content-type": "application/json" });
+    res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "POST") {
-      if (path == "/ping") {
+            if (path == "/ping") {
         let body = [];
         req.on("data", (chunk) => {
           body.push(chunk);
@@ -198,31 +215,29 @@ var interServerRequestHandler = function (req, res) {
         res.end(JSON.stringify({ message: "I'm alive!" }));
       }
       else {
-        //console.log('Msg received from ',portClient1);
         var body = "";
-        res.writeHead(200, { "Content-type": "application/json" });
+        res.writeHead(200, headers);
         req.on("data", function (data) {
           body += data.toString();
         });
         req.on("end", function () {
           const object = JSON.parse(body);
-          const username = object.username;
+          const name = object.name;
           const message = object.message;
-          console.log(username);
-          console.log(message);
-          if (!messages[username]) {
-            messages[username] = [];
+          if (!messages[name]) {
+            messages[name] = [];
           }
-          messages[username].push(message);
+          messages[name].push(message);
           res.end('{status : "ok"}');
         });
       }
     } else {
-      res.writeHead(404, { "Content-type": "application/json" });
+      res.writeHead(404, headers);
       res.end('{message : "page not found"}');
     }
   }
 };
+
 var clientServer = http.createServer(clientRequestHandler);
 var interServer = http.createServer(interServerRequestHandler);
 clientServer.listen(portClient2);
