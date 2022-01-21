@@ -51,9 +51,14 @@ const validateRegisterError = (user)=>{
 }
 
 var RegisterServerRequestHandler = function (req, res) {
+
+   const headers = {
+     "Access-Control-Allow-Origin": "*",
+     "Content-type": "application/json",
+   };
   var path = req.url.split("?")[0];
   if (!path || path == "/") {
-    res.writeHead(404, { "Content-type": "application/json" });
+    res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
 
@@ -66,7 +71,7 @@ var RegisterServerRequestHandler = function (req, res) {
     else if (req.method == "POST") {
        
       var body = "";
-      res.writeHead(200, { "Content-type": "application/json" });
+      
       req.on("data", function (data) {
         body += data.toString();
       });
@@ -77,11 +82,13 @@ var RegisterServerRequestHandler = function (req, res) {
             const validate = validateRegisterError(user)
             
             if(validate){
+              res.writeHead(200, headers);
                 res.end(JSON.stringify({ message: validate }));
             }
             else {
-                
+                user["isOnline"] = true;
                 users.push(user)
+                res.writeHead(200, headers);
                 res.end(JSON.stringify({message :"OK" , users : users}));
             }
         }
@@ -92,11 +99,14 @@ var RegisterServerRequestHandler = function (req, res) {
         
       });
     } else {
-      res.writeHead(404, { "Content-type": "application/json" });
+      res.writeHead(404, headers);
       res.end('{message : "page not found"}');
     }
   }
 };
+
+
+
 
 const server = http.createServer(RegisterServerRequestHandler)
 
