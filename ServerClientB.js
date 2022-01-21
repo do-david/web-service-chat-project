@@ -1,5 +1,5 @@
-var http = require('http');
-var url = require('url');
+var http = require("http");
+var url = require("url");
 
 var portInterServer1 = 8090;
 var portInterServer2 = 8081;
@@ -10,7 +10,7 @@ var PORT_SERVER_REGISTER = 7000;
 
 var host1 = "localhost";
 var host2 = "localhost";
-var HOST_SERVER_REGISTER = "localhost"; 
+var HOST_SERVER_REGISTER = "localhost";
 
 var messages = {};
 
@@ -22,18 +22,16 @@ var optionRegister = {
   method: "",
 };
 
-var name = "";
+var username = "";
 
 var messages = {};
 var users = [];
 
 const isNameExist = (name) => {
-  const user = users.find((element) => element.name == name);
+  const user = users.find((element) => element.username == name);
 
   return user;
 };
-
-
 
 var clientRequestHandler = function (req, res) {
   const headers = {
@@ -59,7 +57,6 @@ var clientRequestHandler = function (req, res) {
   } else {
     if (req.method == "GET") {
       res.writeHead(200, headers);
-
       if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
@@ -97,10 +94,12 @@ var clientRequestHandler = function (req, res) {
         if (!isSended) {
           res.end(JSON.stringify([]));
         } else {
-          const message = JSON.stringify(messages[name]);
+          const username = user.username;
+          const message = JSON.stringify(messages[username]);
+          console.log("message", message);
           res.end(message);
-          messages[name] = 0;
-          delete messages[name];
+          messages[username] = 0;
+          delete messages[username];
         }
       }
     } else if (req.method == "POST") {
@@ -201,21 +200,37 @@ var interServerRequestHandler = function (req, res) {
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "POST") {
-      var body = "";
-      res.writeHead(200, headers);
-      req.on("data", function (data) {
-        body += data.toString();
-      });
-      req.on("end", function () {
-        const object = JSON.parse(body);
-        const name = object.name;
-        const message = object.message;
-        if (!messages[name]) {
-          messages[name] = [];
-        }
-        messages[name].push(message);
-        res.end('{status : "ok"}');
-      });
+            if (path == "/ping") {
+        let body = [];
+        req.on("data", (chunk) => {
+          body.push(chunk);
+        });
+        req.on("end", () => {
+          const parsedBody = Buffer.concat(body).toString();
+          const message = parsedBody.split("=")[1];
+          console.log(parsedBody);
+          console.log(message);
+        });
+        console.log(body);
+        res.end(JSON.stringify({ message: "I'm alive!" }));
+      }
+      else {
+        var body = "";
+        res.writeHead(200, headers);
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const object = JSON.parse(body);
+          const name = object.name;
+          const message = object.message;
+          if (!messages[name]) {
+            messages[name] = [];
+          }
+          messages[name].push(message);
+          res.end('{status : "ok"}');
+        });
+      }
     } else {
       res.writeHead(404, headers);
       res.end('{message : "page not found"}');

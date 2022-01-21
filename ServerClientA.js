@@ -1,11 +1,9 @@
-var http = require('http');
-var url = require('url');
+var http = require("http");
+var url = require("url");
 
 var portInterServer1 = 8090;
 var PORT_SERVER_REGISTER = 7000;
 var portClient1 = 8000;
-
-
 var HOST_SERVER_REGISTER = "localhost"; 
 
 var optionRegister = {
@@ -16,7 +14,7 @@ var optionRegister = {
   method: "",
 };
 
-var name = ""
+var username = "";
 
 var messages = {};
 var users = []
@@ -221,8 +219,13 @@ if (req.method === "OPTIONS") { res.writeHead(204, headers);
             res.writeHead(404, headers);
             res.end('{message : "page not found"}');
         }
+      }
+    } else {
+      res.writeHead(404, { "Content-type": "application/json" });
+      res.end('{message : "page not found"}');
     }
-}
+  }
+};
 var interServerRequestHandler = function (req, res) {
     const headers = {
       "Access-Control-Allow-Origin": "*",
@@ -234,22 +237,37 @@ var interServerRequestHandler = function (req, res) {
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "POST") {
-      
-      var body = "";
-      res.writeHead(200, headers);
-      req.on("data", function (data) {
-        body += data.toString();
-      });
-      req.on("end", function () {
-        const object = JSON.parse(body);
-        const name = object.name;
-        const message = object.message;
-        if (!messages[name]) {
-          messages[name] = [];
-        }
-        messages[name].push(message);
-        res.end('{status : "ok"}');
-      });
+      if (path == "/ping") {
+        let body = [];
+        req.on("data", (chunk) => {
+          body.push(chunk);
+        });
+        req.on("end", () => {
+          const parsedBody = Buffer.concat(body).toString();
+          const message = parsedBody.split("=")[1];
+          console.log(parsedBody);
+          console.log(message);
+        });
+        console.log(body);
+        res.end(JSON.stringify({ message: "Je suis encore en vie!" }));
+      }
+      else {
+        var body = "";
+        res.writeHead(200, headers);
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const object = JSON.parse(body);
+          const name = object.name;
+          const message = object.message;
+          if (!messages[name]) {
+            messages[name] = [];
+          }
+          messages[name].push(message);
+          res.end('{status : "ok"}');
+        });
+      }
     } else {
       res.writeHead(404, headers);
       res.end('{message : "page not found"}');

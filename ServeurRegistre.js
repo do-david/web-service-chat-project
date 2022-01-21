@@ -1,54 +1,99 @@
-const http = require("http")
+const http = require("http");
 
+const PORT_SERVER_REGISTER = 7000;
+var optionPing = {
+  port: "",
+  hostname: "",
+  host: "",
+  path: "/ping",
+  method: "POST",
+};
 
-const PORT_SERVER_REGISTER = 7000
+const users = [];
 
-const users = []
+// vérifier si utilisateur existe dèja
+const checkUsername = (username) => {
+  const user = users.find((element) => element.username == username);
+  if (user) return true;
+  return false;
+};
 
+// checker les error pour un registre
+//ajouter host en requiert
+const validateRegisterError = (user) => {
+  if (!user.username || !user.port) {
+    if (!user.username) return "username missed";
 
-// vérifier si utilisateur existe dèja 
-const checkName = (name)=>{
-
-    const user = users.find(element=>element.name == name)
-
-    if(user) return true
-    
-    return false ; 
-}
-
-// checker les error pour un registre 
-
-
-const validateRegisterError = (user)=>{
-
-     
-    
-    
-    if(!user.name || !user.port ) {
-
-      if(!user.name) return "name missed";
-
-      if(!user.port)  return "port missed";
-
-  
-    
-
-    } else if (user.port) {
-      if (typeof user.port != "number") return "port is not a number";
+    if (!user.port) return "port missed";
+  } else if (user.port) {
+    if (typeof user.port != "number") return "port is not a number";
+    else {
+      if (!Number.isInteger(user.port)) return "port is not an integer";
       else {
-        if (!Number.isInteger(user.port)) return "port is not an integer";
-        else {
-          const isUserExist = checkName(user.name);
-          if (isUserExist) return "name existe dèja";
-        }
-      
+        const isUserExist = checkUsername(user.username);
+        if (isUserExist) return "username existe dèja";
+      }
     }
-    } 
+  }
 
-    return false
+  return false;
+};
 
+// Heartbeat des clients
 
-}
+const HeartBeatRequest = function () {
+  const filteredUsers = users.filter(function (user) {
+    return user.isOnline;
+  });
+  const postData = {
+    message: "liste des utilisateurs connectés",
+    users: [],
+  };
+  for (let i = 0; i < filteredUsers.length; i++) {
+    const normedUser = {
+      name: filteredUsers[i].username,
+      port: filteredUsers[i].port,
+      host: filteredUsers[i].host,
+    };
+    postData.users.push(normedUser);
+  }
+
+  console.log("filtered data :", postData);
+  if (users.length > 0) {
+    //Need to update users
+    for (let i = 0; i < users.length; i++) {
+      //spécificité de chaque utilisateur
+      const hostnameClient = users[i].host;
+      const portClient = users[i].port;
+      const hostClient = `${hostnameClient}:${portClient}`;
+      optionPing.hostname = hostnameClient;
+      optionPing.port = portClient;
+      optionPing.host = hostClient;
+      //prépare la requête
+      var req = http.request(optionPing, function (res) {
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          console.log(`BODY: ${chunk}`);
+        });
+        res.on("end", function () {
+          users[i].isOnline = true;
+        });
+        res.on("error", function (e) {
+          console.error(`problem with response: ${e.message}`);
+        });
+      });
+      req.on("error", function (e) {
+        users[i].isOnline = false;
+        console.error(`problem with request: ${e.message}`);
+      });
+      //envoyer le résultat de la list en post
+      req.write(JSON.stringify(postData));
+      req.end();
+    }
+  }
+};
+//periodicité de 30s
+setInterval(HeartBeatRequest, 30000);
 
 var RegisterServerRequestHandler = function (req, res) {
 
@@ -61,22 +106,15 @@ var RegisterServerRequestHandler = function (req, res) {
     res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
-
-    if(req.method == "GET"){
-
-       
-        res.end(JSON.stringify(users))
-
-    }
-    else if (req.method == "POST") {
-       
+    if (req.method == "GET") {
+      res.end(JSON.stringify(users));
+    } else if (req.method == "POST") {
       var body = "";
       
       req.on("data", function (data) {
         body += data.toString();
       });
-      req.on("end", function () {
-        
+      req.on("end", function () {        
         const user = JSON.parse(body)
         if(user instanceof Object){
             const validate = validateRegisterError(user)
@@ -92,11 +130,6 @@ var RegisterServerRequestHandler = function (req, res) {
                 res.end(JSON.stringify({message :"OK" , users : users}));
             }
         }
-        else {
-            res.end(JSON.stringify({ message: "error data  type : il faut mettre un object avec name et son port" }));
-        }
-
-        
       });
     } else {
       res.writeHead(404, headers);
@@ -105,10 +138,6 @@ var RegisterServerRequestHandler = function (req, res) {
   }
 };
 
+const server = http.createServer(RegisterServerRequestHandler);
 
-
-
-const server = http.createServer(RegisterServerRequestHandler)
-
-
-server.listen(PORT_SERVER_REGISTER)
+server.listen(PORT_SERVER_REGISTER);
