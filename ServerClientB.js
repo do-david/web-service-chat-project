@@ -22,13 +22,13 @@ var optionRegister = {
   method: "",
 };
 
-var username = "";
+var name = "";
 
 var messages = {};
 var users = [];
 
 const isNameExist = (name) => {
-  const user = users.find((element) => element.username == name);
+  const user = users.find((element) => element.name == name);
 
   return user;
 };
@@ -94,12 +94,11 @@ var clientRequestHandler = function (req, res) {
         if (!isSended) {
           res.end(JSON.stringify([]));
         } else {
-          const username = user.username;
-          const message = JSON.stringify(messages[username]);
+          const message = JSON.stringify(messages[name]);
           console.log("message", message);
           res.end(message);
-          messages[username] = 0;
-          delete messages[username];
+          messages[name] = 0;
+          delete messages[name];
         }
       }
     } else if (req.method == "POST") {

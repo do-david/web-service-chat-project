@@ -12,8 +12,8 @@ var optionPing = {
 const users = [];
 
 // vérifier si utilisateur existe dèja
-const checkUsername = (username) => {
-  const user = users.find((element) => element.username == username);
+const checkname = (name) => {
+  const user = users.find((element) => element.name == name);
   if (user) return true;
   return false;
 };
@@ -21,8 +21,8 @@ const checkUsername = (username) => {
 // checker les error pour un registre
 //ajouter host en requiert
 const validateRegisterError = (user) => {
-  if (!user.username || !user.port) {
-    if (!user.username) return "username missed";
+  if (!user.name || !user.port) {
+    if (!user.name) return "name missed";
 
     if (!user.port) return "port missed";
   } else if (user.port) {
@@ -30,8 +30,8 @@ const validateRegisterError = (user) => {
     else {
       if (!Number.isInteger(user.port)) return "port is not an integer";
       else {
-        const isUserExist = checkUsername(user.username);
-        if (isUserExist) return "username existe dèja";
+        const isUserExist = checkname(user.name);
+        if (isUserExist) return "name existe dèja";
       }
     }
   }
@@ -51,7 +51,7 @@ const HeartBeatRequest = function () {
   };
   for (let i = 0; i < filteredUsers.length; i++) {
     const normedUser = {
-      name: filteredUsers[i].username,
+      name: filteredUsers[i].name,
       port: filteredUsers[i].port,
       host: filteredUsers[i].host,
     };
