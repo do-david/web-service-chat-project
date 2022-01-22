@@ -206,9 +206,7 @@ var interServerRequestHandler = function (req, res) {
         });
         req.on("end", () => {
           const parsedBody = Buffer.concat(body).toString();
-          const message = parsedBody.split("=")[1];
           console.log(parsedBody);
-          console.log(message);
         });
         console.log(body);
         res.end(JSON.stringify({ message: "I'm alive!" }));

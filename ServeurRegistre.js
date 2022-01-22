@@ -1,4 +1,7 @@
 const http = require("http");
+var fs = require("fs");
+var { Buffer } = require("buffer");
+
 
 const PORT_SERVER_REGISTER = 7000;
 var optionPing = {
@@ -10,7 +13,20 @@ var optionPing = {
 };
 
 const users = [];
+const protectedUsers = [];
 
+// sauvegarder les utilisateurs protégés
+function CreateFile() {
+  try {
+    const data = new Uint8Array(Buffer.from(JSON.stringify(protectedUsers)));
+    fs.writeFile("users.txt", data, (err) => {
+      if (err) throw err;
+      console.log("The file has been saved!");
+    });
+  } catch (e) {
+    console.log(e);
+  }
+}
 // vérifier si utilisateur existe dèja
 const checkname = (name) => {
   const user = users.find((element) => element.name == name);
@@ -42,24 +58,23 @@ const validateRegisterError = (user) => {
 // Heartbeat des clients
 
 const HeartBeatRequest = function () {
-  const filteredUsers = users.filter(function (user) {
-    return user.isOnline;
-  });
-  const postData = {
-    message: "liste des utilisateurs connectés",
-    users: [],
-  };
-  for (let i = 0; i < filteredUsers.length; i++) {
-    const normedUser = {
-      name: filteredUsers[i].name,
-      port: filteredUsers[i].port,
-      host: filteredUsers[i].host,
-    };
-    postData.users.push(normedUser);
-  }
-
-  console.log("filtered data :", postData);
   if (users.length > 0) {
+    const filteredUsers = users.filter(function (user) {
+      return user.isOnline;
+    });
+    const postData = {
+      message: "liste des utilisateurs connectés",
+      users: [],
+    };
+    for (let i = 0; i < filteredUsers.length; i++) {
+      const normedUser = {
+        name: filteredUsers[i].name,
+        port: filteredUsers[i].port,
+        host: filteredUsers[i].host,
+      };
+      postData.users.push(normedUser);
+    }
+    console.log("filtered data :", postData);
     //Need to update users
     for (let i = 0; i < users.length; i++) {
       //spécificité de chaque utilisateur
@@ -77,6 +92,7 @@ const HeartBeatRequest = function () {
         });
         res.on("end", function () {
           users[i].isOnline = true;
+          CreateFile();
         });
         res.on("error", function (e) {
           console.error(`problem with response: ${e.message}`);
@@ -95,42 +111,70 @@ const HeartBeatRequest = function () {
 //periodicité de 30s
 setInterval(HeartBeatRequest, 30000);
 
-var RegisterServerRequestHandler = function (req, res) {
+// authentification
+const Authentification = function () {};
 
-   const headers = {
-     "Access-Control-Allow-Origin": "*",
-     "Content-type": "application/json",
-   };
+var RegisterServerRequestHandler = function (req, res) {
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-type": "application/json",
+  };
   var path = req.url.split("?")[0];
+  // console.log('url in register',req.url);
   if (!path || path == "/") {
     res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "GET") {
-      res.end(JSON.stringify(users));
+      if (path == "/users") {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify(users));
+      }
     } else if (req.method == "POST") {
-      var body = "";
-      
-      req.on("data", function (data) {
-        body += data.toString();
-      });
-      req.on("end", function () {        
-        const user = JSON.parse(body)
-        if(user instanceof Object){
-            const validate = validateRegisterError(user)
-            
-            if(validate){
-              res.writeHead(200, headers);
+      console.log(req.path);
+      if (path == "/register") {
+        var body = "";
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const user = JSON.parse(body);
+          if (user instanceof Object) {
+            // user lambda
+            if (!user.password) {
+              const validate = validateRegisterError(user);
+
+              if (validate) {
+                res.writeHead(202, headers);
                 res.end(JSON.stringify({ message: validate }));
-            }
-            else {
+              } else {
                 user["isOnline"] = true;
-                users.push(user)
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({message :"OK" , users : users}));
+                users.push(user);
+                res.writeHead(201, headers);
+                res.end(
+                  JSON.stringify({
+                    message: "Utilisateur créé sur le registre",
+                    users: users,
+                  })
+                );
+              }
             }
-        }
-      });
+            // protected user
+            else {
+              user["isOnline"] = true;
+              protectedUsers.push(user);
+              let allUsers = [].concat(users, protectedUsers);
+              res.writeHead(201, headers);
+              res.end(
+                JSON.stringify({
+                  message: "Utilisateur protégé créé sur le registre",
+                  users: allUsers,
+                })
+              );
+            }
+          }
+        });
+      }
     } else {
       res.writeHead(404, headers);
       res.end('{message : "page not found"}');
