@@ -1,6 +1,7 @@
 const http = require("http");
 
-const PORT_SERVER_REGISTER = 7000;
+const PORT_SERVER_REGISTER = 1337;
+
 var optionPing = {
   port: "",
   hostname: "",
@@ -21,10 +22,12 @@ const checkname = (name) => {
 // checker les error pour un registre
 //ajouter host en requiert
 const validateRegisterError = (user) => {
-  if (!user.name || !user.port) {
+  if (!user.name || !user.port || !user.host) {
     if (!user.name) return "name missed";
 
     if (!user.port) return "port missed";
+
+    if (!user.host) return "host missed";
   } else if (user.port) {
     if (typeof user.port != "number") return "port is not a number";
     else {
@@ -96,44 +99,52 @@ const HeartBeatRequest = function () {
 setInterval(HeartBeatRequest, 30000);
 
 var RegisterServerRequestHandler = function (req, res) {
-
-   const headers = {
-     "Access-Control-Allow-Origin": "*",
-     "Content-type": "application/json",
-   };
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-type": "application/json",
+  };
   var path = req.url.split("?")[0];
   if (!path || path == "/") {
     res.writeHead(404, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "GET") {
-      res.end(JSON.stringify(users));
+      if (path == "/users") {
+        res.writeHead(200, headers);
+        res.end(JSON.stringify(users));
+      }
     } else if (req.method == "POST") {
-      var body = "";
-      
-      req.on("data", function (data) {
-        body += data.toString();
-      });
-      req.on("end", function () {        
-        const user = JSON.parse(body)
-        if(user instanceof Object){
-            const validate = validateRegisterError(user)
-            
-            if(validate){
+      if (path == "/register") {
+        var body = "";
+
+        req.on("data", function (data) {
+          body += data.toString();
+        });
+        req.on("end", function () {
+          const user = JSON.parse(body);
+          if (user instanceof Object) {
+            const validate = validateRegisterError(user);
+
+            if (validate) {
               res.writeHead(200, headers);
-                res.end(JSON.stringify({ message: validate }));
+              res.end(JSON.stringify({ message: validate }));
+            } else {
+              user["isOnline"] = true;
+              users.push(user);
+              res.writeHead(200, headers);
+              res.end(
+                JSON.stringify({
+                  message: "Liste des clients connectés",
+                  users: users,
+                })
+              );
             }
-            else {
-                user["isOnline"] = true;
-                users.push(user)
-                res.writeHead(200, headers);
-                res.end(JSON.stringify({message :"OK" , users : users}));
-            }
-        }
-      });
+          }
+        });
+      }
     } else {
       res.writeHead(404, headers);
-      res.end('{message : "page not found"}');
+      res.end('{message : "ressource introuvable"}');
     }
   }
 };

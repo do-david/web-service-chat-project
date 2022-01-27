@@ -1,11 +1,14 @@
 var http = require("http");
-var url = require("url");
 
+// LES PORTS
 var portInterServer1 = 8090;
-var PORT_SERVER_REGISTER = 7000;
+var PORT_SERVER_REGISTER = 1337;
 var portClient1 = 8000;
+
+// LES HOSTS
 var HOST_SERVER_REGISTER = "localhost";
 
+// option pour communiquer avec le serveur registre
 var optionRegister = {
   port: PORT_SERVER_REGISTER,
   hostname: HOST_SERVER_REGISTER,
@@ -14,33 +17,22 @@ var optionRegister = {
   method: "",
 };
 
-var name = "";
 var messages = {};
 var users = [];
+var messagesWithTime = {};
 
+//  check si un name existe dans la liste des utilisateurs
 const isNameExist = (name) => {
   const user = users.find((element) => element.name == name);
 
   return user;
 };
 
-//validation envoie un message
-const validateRequestClient = (user) => {
-  if (!user.name) return "name missed";
-  else if (!user.message) return "message missed";
-  else {
-    const user = checkname(user.name);
-    if (user) return user;
-  }
-
-  return false;
-};
-
 var clientRequestHandler = function (req, res) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers":
-      "Access-Control-Allow-Origin, Content-Type, Accept, Accept-Language, Origin, User-Agent",
+      "Access-Control-Allow-Origin, Content-Type, Accept, Accept-Language, Origin, User-Agent ,from",
     "Access-Control-Allow-Methods": "GET, POST",
     "Content-type": "application/json",
   };
@@ -51,16 +43,15 @@ var clientRequestHandler = function (req, res) {
     return;
   }
 
-  console.log(req.method);
   var path = req.url.split("?")[0];
   const chatPath = path.split("/chat/");
+  const timePath = path.split("/time/");
+
   if (!path || path == "/") {
     res.writeHead(200, headers);
     res.end('{message : "page not found"}');
   } else {
     if (req.method == "GET") {
-      res.writeHead(200, headers);
-
       if (path == "/users") {
         optionRegister.path = path;
         optionRegister.method = req.method;
@@ -69,9 +60,7 @@ var clientRequestHandler = function (req, res) {
           var body = "";
           response.on("error", function (e) {
             console.log(e);
-
-            res.writeHead(500, headers);
-
+            res.writeHead(404, headers);
             res.end(e);
           });
           response.on("data", function (data) {
@@ -88,10 +77,21 @@ var clientRequestHandler = function (req, res) {
         request.on("error", function (e) {
           console.log(e);
           res.writeHead(500, headers);
-          res.end(e);
+          res.end("{message : erreur serveur}");
         });
+
         req.pipe(request);
+      } else if (timePath && timePath[1]) {
+        res.writeHead(200, headers);
+        const name = timePath[1];
+        const isSended = messagesWithTime[name];
+        if (!isSended) {
+          res.end(JSON.stringify([]));
+        } else {
+          res.end(JSON.stringify(messagesWithTime[name]));
+        }
       } else {
+        res.writeHead(200, headers);
         const name = path.split("/")[1];
         const isSended = messages[name];
 
@@ -100,11 +100,10 @@ var clientRequestHandler = function (req, res) {
         } else {
           const message = JSON.stringify(messages[name]);
           res.end(message);
-          messages[name] = 0;
-          delete messages[name];
         }
       }
     } else if (req.method == "POST") {
+      console.log('path',path);
       if (path == "/register") {
         optionRegister.path = path;
         optionRegister.method = req.method;
@@ -120,16 +119,9 @@ var clientRequestHandler = function (req, res) {
             body += data.toString();
           });
           response.on("end", function () {
-            res.writeHead(200, headers);
-
+            res.writeHead(response.statusCode, headers);
             const result = JSON.parse(body);
-
-            if (result.name) {
-              name = JSON.parse(body).name;
-            }
             users = result.users;
-            console.log(result);
-            console.log(users);
             res.end(body);
           });
         });
@@ -137,18 +129,22 @@ var clientRequestHandler = function (req, res) {
         request.on("error", function (e) {
           console.log(e);
           res.writeHead(500, headers);
-          res.end(e);
+          res.end("{message : erreur serveur}");
         });
         req.pipe(request);
         req;
       } else if (path == "/chat") {
         res.writeHead(400, headers);
-        res.end('{message : "bad request"}');
+        res.end('{message : "malformation de requête"}');
       } else if (chatPath && chatPath[1]) {
         const user = isNameExist(chatPath[1]);
+        const from = req.headers["from"];
         if (!user) {
-          res.end("{message : name pas en ligne ou n'existe pas}");
+          res.end("{message : utilisateur non connecté ou n'existe pas}");
+        } else if (!from) {
+          res.end("{message : il faut ajouter le header from }");
         } else {
+          // res.writeHead(200, headers);
           const PORT = user.port;
           const HOST = user.host;
           var options = {
@@ -163,7 +159,7 @@ var clientRequestHandler = function (req, res) {
             response.on("error", function (e) {
               console.log(e);
               res.writeHead(500, headers);
-              res.end(e);
+              res.end("{message : erreur serveur}");
             });
             response.on("data", function (data) {
               body += data.toString();
@@ -177,17 +173,18 @@ var clientRequestHandler = function (req, res) {
           request.on("error", function (e) {
             console.log(e);
             res.writeHead(500, headers);
-            res.end(e);
+            res.end("{message : 'erreur serveur'}");
           });
+          request.setHeader("from", from);
           req.pipe(request);
         }
       } else {
         res.writeHead(404, headers);
-        res.end('{message : "page not found"}');
+        res.end('{message : "ressource introuvable"}');
       }
     } else {
       res.writeHead(404, headers);
-      res.end('{message : "page not found"}');
+      res.end('{message : "ressource introuvable"}');
     }
   }
 };
@@ -199,7 +196,7 @@ var interServerRequestHandler = function (req, res) {
   var path = req.url.split("?")[0];
   if (!path || path == "/") {
     res.writeHead(404, headers);
-    res.end('{message : "page not found"}');
+    res.end('{message : "ressource introuvable"}');
   } else {
     if (req.method == "POST") {
       if (path == "/ping") {
@@ -222,9 +219,18 @@ var interServerRequestHandler = function (req, res) {
           body += data.toString();
         });
         req.on("end", function () {
-          const object = JSON.parse(body);
-          const name = object.name;
-          const message = object.message;
+          const message = body;
+          const name = req.headers["from"];
+          // ajout du times dans un autre objet avec times
+          if (!messagesWithTime[name]) {
+            messagesWithTime[name] = [];
+          }
+          messagesWithTime[name].push({
+            time: Date.now(),
+            message: message,
+          });
+
+          // ajout des messages dans l'objet messages
           if (!messages[name]) {
             messages[name] = [];
           }
@@ -234,7 +240,7 @@ var interServerRequestHandler = function (req, res) {
       }
     } else {
       res.writeHead(404, headers);
-      res.end('{message : "page not found"}');
+      res.end('{message : "ressource introuvable"}');
     }
   }
 };
